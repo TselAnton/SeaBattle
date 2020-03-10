@@ -1,7 +1,7 @@
 const shot = document.getElementById("shot");
 const record = document.getElementById("record");
 const hit = document.getElementById("hit");
-const dead = document.getElementById("dead");
+const kd = document.getElementById("kd");
 const table = document.getElementById("enemy");
 const buttonAgain = document.getElementById("again");
 const header = document.getElementById("header");
@@ -22,6 +22,7 @@ const gameParameters = {
 	hit: 0,
 	dead: 0,
 	numOfShips: 0,
+	kd: 0,
 	isGameOver: false,
 	madeMoves: [],
 	ships: [],
@@ -29,11 +30,12 @@ const gameParameters = {
 		this.shot = 0;
 		this.hit = 0;
 		this.dead = 0;
+		this.kd = 0.00;
 		this.numOfShips = 0;
 		
 		shot.innerHTML = this.shot;
 		hit.innerHTML = this.hit;
-		dead.innerHTML = this.dead;
+		kd.innerHTML = this.kd;
 		
 		console.log("Header = " + header);
 		header.innerHTML = "<font color=\"black\">Sea Battle</font>";
@@ -58,15 +60,20 @@ const gameParameters = {
 		hit.innerHTML = ++this.hit;
 	},
 	incDeads() {
-		dead.innerHTML = ++this.dead;
+		this.dead++;
 		if (this.dead == this.numOfShips - 1) {
 			this.gameOver();
 		}
 	},
+	updateKD() {
+		this.kd = (this.hit / this.shot).toFixed(2);
+		kd.innerHTML = this.kd;
+	},
 	gameOver() {
+		this.updateKD();
 		header.innerHTML = "<font color=\"red\">Game Over</font>";
-		if (this.record == 0 || this.record > this.shot) {
-			this.record = this.shot;
+		if (this.record == 0 || this.record < this.kd) {
+			this.record = this.kd;
 			record.innerHTML = this.record;
 		}
 		isGameOver = true;
@@ -216,6 +223,7 @@ const doFire = (target) => {
 	} else {
 		state.miss(target);
 	}
+	gameParameters.updateKD();
 }
 
 // Check is dead ship
