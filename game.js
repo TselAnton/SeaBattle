@@ -4,15 +4,16 @@ const hit = document.getElementById("hit");
 const dead = document.getElementById("dead");
 const table = document.getElementById("enemy");
 const buttonAgain = document.getElementById("again");
+const header = document.getElementById("header");
 
-const numOfTrying = 5;
+const numOfTrying = 30;
 
 // Ships count
-const fiveLengthShip = 1;
-const fourLengthShip = 2;
-const threeLengthShip = 3;
-const twoLengthShip = 4;
-const oneLengthShip = 5;
+const fiveLengthShip = 0;
+const fourLengthShip = 1;
+const threeLengthShip = 2;
+const twoLengthShip = 3;
+const oneLengthShip = 4;
 
 // Game parameters
 const gameParameters = {
@@ -20,34 +21,65 @@ const gameParameters = {
 	shot: 0,
 	hit: 0,
 	dead: 0,
+	numOfShips: 0,
+	isGameOver: false,
 	madeMoves: [],
 	ships: [],
 	resetParameters() {
-		this.short = 0;
+		this.shot = 0;
 		this.hit = 0;
 		this.dead = 0;
+		this.numOfShips = 0;
+		
+		shot.innerHTML = this.shot;
+		hit.innerHTML = this.hit;
+		dead.innerHTML = this.dead;
+		
+		console.log("Header = " + header);
+		header.innerHTML = "<font color=\"black\">Sea Battle</font>";
+		
 		this.madeMoves = [];
 		this.generateShips();
 	},
 	generateShips() {
-		numOfGenerated = 0;
-		while (numOfGenerated < 5) {
-			this.ships = [];
-			numOfGenerated += generateManyShips(fiveLengthShip, 5);
-			numOfGenerated += generateManyShips(fourLengthShip, 4);
-			numOfGenerated += generateManyShips(threeLengthShip, 3);
-			numOfGenerated += generateManyShips(twoLengthShip, 2);
-			numOfGenerated += generateManyShips(oneLengthShip, 1);
+		this.ships = [];
+		this.numOfShips += generateManyShips(fiveLengthShip, 5);
+		this.numOfShips += generateManyShips(fourLengthShip, 4);
+		this.numOfShips += generateManyShips(threeLengthShip, 3);
+		this.numOfShips += generateManyShips(twoLengthShip, 2);
+		this.numOfShips += generateManyShips(oneLengthShip, 1);
+		console.log("Всего сегерировалось кораблей: " + this.numOfShips);
+			
+	},
+	incShots() {
+		shot.innerHTML = ++this.shot;
+	},
+	incHits() {
+		hit.innerHTML = ++this.hit;
+	},
+	incDeads() {
+		dead.innerHTML = ++this.dead;
+		if (this.dead == this.numOfShips - 1) {
+			this.gameOver();
 		}
+	},
+	gameOver() {
+		header.innerHTML = "<font color=\"red\">Game Over</font>";
+		if (this.record == 0 || this.record > this.shot) {
+			this.record = this.shot;
+			record.innerHTML = this.record;
+		}
+		isGameOver = true;
 	}
 };
 
 // Generation many ships
 const generateManyShips = (shipCount, shipLength) => {
-	console.log("Генерация " + shipLength + "-палубных кораблей в количестве: " + shipCount + " шт.");
+	numOfShips = 0;
 	for (var i = 0; i < shipCount; i++) {
-		generateOneShip(shipLength);
+		numOfShips += generateOneShip(shipLength);
 	}
+	return numOfShips;
 }
 
 // Generation one ship
@@ -85,6 +117,7 @@ const generateOneShip = (shipLength) => {
 const isCanBeGenerated = (head, dir, shipLength) => {
 	shipCoordinate = [];
 	for (var i = 0; i < shipLength; i++) {
+		beforeHead = head;
 		if (dir == 0) {			// Down
 			head += 10;
 		} else if (dir == 1) {	// Up
@@ -94,7 +127,7 @@ const isCanBeGenerated = (head, dir, shipLength) => {
 		} else {				// Right
 			head += i;
 		}
-		if (head > 99 || head < 0 || !isEmptyAround(head)) {
+		if (head > 99 || head < 0 || !isEmptyAround(head) || ((dir > 1) && !isOneHorizontal(beforeHead, head))) {
 			return false;
 		}
 		shipCoordinate.push(head);
@@ -162,11 +195,8 @@ const state = {
 	miss(element) {
 		this.changeState(element, "miss");
 	},
-	dead(r, c) {
-		console.log("Table is: " + table)
-		console.log("Rows is: " + table.rows[r])
-		console.log("Cells is: " + table.rows[r].cells[c])
-		this.changeState(table, "dead"); //TODO
+	dead(element) {
+		this.changeState(element, "dead");
 	},
 	clear(element) {
 	    this.changeState(element, "");
@@ -178,7 +208,9 @@ const state = {
 
 // Check hit or miss. Chang hit to dead
 const doFire = (target) => {
+	gameParameters.incShots();
 	if (isHit(target.id)) {
+		gameParameters.incHits();
 		state.hit(target);
 		checkDeadOfShip(target.id);
 	} else {
@@ -194,7 +226,7 @@ const checkDeadOfShip = (cell) => {
 	
 	if (isHit(cell - 10) || isHit(cell + 10)) {		// The ship is vertical
 		for (var i = 1; i < 5; i++) {
-			upperCell = cell - 10 * i
+			upperCell = cell - 10 * i;
 			if ((!isHit(upperCell))) {
 				break;
 			} else if (isNewMove(upperCell)) {
@@ -205,7 +237,7 @@ const checkDeadOfShip = (cell) => {
 			}
 		}
 		for (var i = 1; i < 5; i++) {
-			lowerCell = cell + 10 * i
+			lowerCell = cell + 10 * i;
 			if ((!isHit(lowerCell))) {
 				break;
 			} else if (isNewMove(lowerCell)) {
@@ -217,7 +249,12 @@ const checkDeadOfShip = (cell) => {
 		}
 	} else { 										// The ship is horizontal
 		for (var i = 1; i < 5; i++) {
-			leftCell = cell - i
+			leftCell = cell - i;
+			
+			if (!isOneHorizontal(leftCell + 1, leftCell)) {
+				break;
+			}
+			
 			if ((!isHit(leftCell))) {
 				break;
 			} else if (isNewMove(leftCell)) {
@@ -228,7 +265,12 @@ const checkDeadOfShip = (cell) => {
 			}
 		}
 		for (var i = 1; i < 5; i++) {
-			rightCell = cell + i
+			rightCell = cell + i;
+			
+			if (!isOneHorizontal(rightCell - 1, rightCell)) {
+				break;
+			}
+			
 			if ((!isHit(rightCell))) {
 				break;
 			} else if (isNewMove(rightCell)) {
@@ -242,9 +284,19 @@ const checkDeadOfShip = (cell) => {
 	
 	if (isDead) {
 		for (var i = 0; i < shipCoordinates.length; i++) {
-			state.dead(shipCoordinates[i]);
+			state.dead(table.rows[Math.floor(shipCoordinates[i] / 10)].cells[(shipCoordinates[i] % 10)]);
 		}
+		gameParameters.incDeads();
+		console.log("Осталось кораблей: " + (gameParameters.numOfShips - gameParameters.dead));
 	}
+}
+
+// Check if is one horizontal
+const isOneHorizontal = (fCell, sCell) => {
+	if (Math.floor(fCell / 10) === Math.floor(sCell / 10)) {
+		return true;
+	}
+	return false;
 }
 
 // Check for ship on cell
@@ -275,7 +327,7 @@ const getRandomInt = (max) => {
 // Do click
 const doClick = (item) => {
 	target = item.target;
-	if (target.id != "") {
+	if (target.id != "" && target.id != "enemy" && !gameParameters.isGameOver) {
 		cellId = target.id;
 		if (isNewMove(cellId)) {
 			console.log("Сделан ход в ячейку " + cellId);
